@@ -6,6 +6,8 @@ import { ArrowDownCircle, ArrowUpCircle, SlidersHorizontal } from "lucide-react"
 import QRSection from "./QRSection";
 import TransactionButtons from "./TransactionButtons";
 import EditItemDrawer from "./EditItemDrawer";
+import LotList from "./LotList";
+import AddLotDrawer from "./AddLotDrawer";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -14,7 +16,7 @@ interface Params {
 export default async function ItemDetailPage({ params }: Params) {
   const { id } = await params;
 
-  const [item, categories, units] = await Promise.all([
+  const [item, categories, units, lots] = await Promise.all([
     prisma.item.findUnique({
       where: { id },
       include: {
@@ -29,11 +31,24 @@ export default async function ItemDetailPage({ params }: Params) {
     }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.unitOfMeasure.findMany({ orderBy: { name: "asc" } }),
+    prisma.lot.findMany({ where: { itemId: id }, orderBy: { createdAt: "asc" } }),
   ]);
 
   if (!item) notFound();
 
   const attrs = item.attributes as Record<string, unknown> | null;
+
+  // Serialize Decimal fields to plain numbers before passing to client components
+  const editableItem = {
+    id: item.id,
+    name: item.name,
+    sku: item.sku,
+    notes: item.notes,
+    lowStockThreshold: item.lowStockThreshold != null ? Number(item.lowStockThreshold) : null,
+    categoryId: item.categoryId,
+    unitOfMeasureId: item.unitOfMeasureId,
+    attributes: item.attributes,
+  };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -70,7 +85,7 @@ export default async function ItemDetailPage({ params }: Params) {
                 <p className="text-xs text-orange-500">Low stock</p>
               )}
           </div>
-          <EditItemDrawer item={item} categories={categories} units={units} />
+          <EditItemDrawer item={editableItem} categories={categories} units={units} />
         </div>
       </div>
 
@@ -95,6 +110,8 @@ export default async function ItemDetailPage({ params }: Params) {
                       ? val
                         ? "Yes"
                         : "No"
+                      : key.includes("inches") && (!val || val === 0)
+                      ? "—"
                       : String(val)}
                   </dd>
                 </div>
@@ -107,6 +124,27 @@ export default async function ItemDetailPage({ params }: Params) {
       {item.notes && (
         <p className="text-sm text-muted-foreground">{item.notes}</p>
       )}
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Lots</h2>
+          <AddLotDrawer
+            itemId={item.id}
+            unitAbbr={item.unitOfMeasure.abbreviation}
+            isBoardFeet={item.unitOfMeasure.abbreviation === "bf"}
+          />
+        </div>
+        <LotList
+          itemId={item.id}
+          lots={lots.map((l) => ({
+            id: l.id,
+            quantity: Number(l.quantity),
+            attributes: l.attributes as Record<string, unknown> | null,
+            notes: l.notes,
+          }))}
+          unitAbbr={item.unitOfMeasure.abbreviation}
+        />
+      </div>
 
       <QRSection itemId={item.id} itemName={item.name} />
 

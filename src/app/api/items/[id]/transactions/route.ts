@@ -5,7 +5,8 @@ import { z } from "zod";
 
 const txSchema = z.object({
   type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
-  quantity: z.number().positive(),
+  // ADJUSTMENT allows 0 (set quantity to zero); IN/OUT require positive
+  quantity: z.number().min(0),
   notes: z.string().optional(),
 });
 
@@ -22,10 +23,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const body = await req.json();
   const parsed = txSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten().fieldErrors },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
   const { type, quantity, notes } = parsed.data;

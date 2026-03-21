@@ -49,7 +49,7 @@ export default function TransactionButtons({
     setSubmitting(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "Transaction failed");
+      toast.error(typeof data.error === "string" ? data.error : "Transaction failed");
       return;
     }
     toast.success(

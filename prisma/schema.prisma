@@ -126,9 +126,31 @@ model Item {
   notes       String?
 
   transactions Transaction[]
+  lots         Lot[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── LOTS ────────────────────────────────────────────────────────────────────
+// A Lot is a discrete sub-quantity contributing to an Item's total.
+// e.g. an individual board making up a lumber item's total board footage,
+// or a roll making up a fabric item's total yardage.
+// Item.quantity is always the authoritative running total (sum of lots +
+// any direct transactions). Lot.attributes uses the same free-form JSON
+// pattern as Item.attributes and is category-dependent.
+
+model Lot {
+  id         String  @id @default(cuid())
+  itemId     String
+  item       Item    @relation(fields: [itemId], references: [id])
+
+  quantity   Decimal @db.Decimal(10, 4)
+  attributes Json?
+  notes      String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // ─── TRANSACTIONS ────────────────────────────────────────────────────────────
