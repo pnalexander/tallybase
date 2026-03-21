@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Settings, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,13 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AttributeField {
   key: string;
@@ -67,6 +74,8 @@ export default function EditItemDrawer({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [name, setName] = useState(item.name);
@@ -112,6 +121,21 @@ export default function EditItemDrawer({
     setOpen(false);
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
+    setDeleting(false);
+
+    if (!res.ok) {
+      toast.error("Failed to delete item");
+      return;
+    }
+
+    toast.success("Item deleted");
+    router.push("/inventory");
+    router.refresh();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -145,10 +169,27 @@ export default function EditItemDrawer({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Pencil className="h-4 w-4 mr-1.5" />
-        Edit
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setOpen(true)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit item
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete item
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Drawer open={open} onOpenChange={(v) => { if (!v) resetAndClose(); else setOpen(true); }}>
         <DrawerContent>
@@ -156,8 +197,8 @@ export default function EditItemDrawer({
             <DrawerTitle>Edit Item</DrawerTitle>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmit}>
-            <div className="px-4 pb-2 space-y-4 overflow-y-auto max-h-[60vh]">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="px-4 pb-2 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* Name */}
               <div className="space-y-1.5">
                 <Label htmlFor="edit-name">Name</Label>
@@ -322,6 +363,35 @@ export default function EditItemDrawer({
               </DrawerClose>
             </DrawerFooter>
           </form>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Delete item</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 py-2 space-y-1">
+            <p className="text-sm">
+              Are you sure you want to delete <strong>{item.name}</strong>?
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This will permanently remove the item along with all its lots and transaction history.
+            </p>
+          </div>
+          <DrawerFooter>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {deleting ? "Deleting…" : "Delete item"}
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </>

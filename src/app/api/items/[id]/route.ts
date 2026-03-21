@@ -18,6 +18,23 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const session = await getAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  await prisma.$transaction([
+    prisma.lot.deleteMany({ where: { itemId: id } }),
+    prisma.transaction.deleteMany({ where: { itemId: id } }),
+    prisma.item.delete({ where: { id } }),
+  ]);
+
+  return new NextResponse(null, { status: 204 });
+}
+
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await getAuthSession();
   if (!session) {
