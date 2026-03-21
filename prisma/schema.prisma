@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH (better-auth) ──────────────────────────────────────────────────────
+// These models are managed by better-auth. The `user` model is extended with
+// the `transactions` relation for app-level use.
+
+model user {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      session[]
+  accounts      account[]
+
+  transactions Transaction[]
+
+  @@map("user")
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+// ─── INVENTORY CORE ──────────────────────────────────────────────────────────
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  color       String?
+  icon        String?
+
+  // Defines what attribute keys are expected for items in this category.
+  // Stored as JSON array. Used for dynamic form generation and display.
+  //
+  // Supported types:
+  //   "string"   — text input; optional "options" array renders as select
+  //   "number"   — numeric input; stored as number
+  //   "quarters" — fraction input displayed/entered as X/4 (e.g. 8/4); stored as integer numerator
+  //   "boolean"  — checkbox
+  attributeSchema Json?
+
+  items     Item[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UnitOfMeasure {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  abbreviation String  @unique
+  isDecimal    Boolean @default(true)
+
+  items     Item[]
+  createdAt DateTime @default(now())
+}
+
+model Item {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  sku         String? @unique
+
+  categoryId      String
+  category        Category      @relation(fields: [categoryId], references: [id])
+
+  unitOfMeasureId String
+  unitOfMeasure   UnitOfMeasure @relation(fields: [unitOfMeasureId], references: [id])
+
+  quantity          Decimal  @default(0) @db.Decimal(10, 4)
+  lowStockThreshold Decimal? @db.Decimal(10, 4)
+
+  attributes  Json?
+  qrCodeValue String?
+  imageUrl    String?
+  notes       String?
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── TRANSACTIONS ────────────────────────────────────────────────────────────
+
+enum TransactionType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model Transaction {
+  id     String @id @default(cuid())
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  type TransactionType
+
+  quantity   Decimal  @db.Decimal(10, 4)
+  adjustedTo Decimal? @db.Decimal(10, 4)
+
+  quantityBefore Decimal @db.Decimal(10, 4)
+
+  notes String?
+
+  createdById String?
+  createdBy   user?   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+}
