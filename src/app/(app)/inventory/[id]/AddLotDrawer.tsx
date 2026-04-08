@@ -19,13 +19,13 @@ import {
 function calcBoardFeet(
   thicknessQuarters: string,
   widthInches: string,
-  lengthFeet: string
+  lengthInches: string
 ): number | null {
   const t = parseFloat(thicknessQuarters);
   const w = parseFloat(widthInches);
-  const l = parseFloat(lengthFeet);
+  const l = parseFloat(lengthInches);
   if (!t || !w || !l) return null;
-  return parseFloat(((t / 4) * (w / 12) * l).toFixed(4));
+  return parseFloat(((t / 4) * (w / 12) * (l / 12)).toFixed(4));
 }
 
 export default function AddLotDrawer({
@@ -44,7 +44,7 @@ export default function AddLotDrawer({
   // BF calculator fields (lumber)
   const [thicknessQuarters, setThicknessQuarters] = useState("");
   const [widthInches, setWidthInches] = useState("");
-  const [lengthFeet, setLengthFeet] = useState("");
+  const [lengthInches, setLengthInches] = useState("");
 
   // Direct quantity (non-lumber or manual override)
   const [manualQty, setManualQty] = useState("");
@@ -53,7 +53,7 @@ export default function AddLotDrawer({
   const [notes, setNotes] = useState("");
 
   const calculatedBF = isBoardFeet
-    ? calcBoardFeet(thicknessQuarters, widthInches, lengthFeet)
+    ? calcBoardFeet(thicknessQuarters, widthInches, lengthInches)
     : null;
 
   // The quantity to submit: BF calc result for lumber, manual entry otherwise
@@ -69,7 +69,7 @@ export default function AddLotDrawer({
   function reset() {
     setThicknessQuarters("");
     setWidthInches("");
-    setLengthFeet("");
+    setLengthInches("");
     setManualQty("");
     setCount("1");
     setNotes("");
@@ -84,8 +84,8 @@ export default function AddLotDrawer({
       attributes.thickness_quarters = parseFloat(thicknessQuarters);
     if (isBoardFeet && widthInches)
       attributes.width_inches = parseFloat(widthInches);
-    if (isBoardFeet && lengthFeet)
-      attributes.length_feet = parseFloat(lengthFeet);
+    if (isBoardFeet && lengthInches)
+      attributes.length_inches = parseFloat(lengthInches);
 
     setSubmitting(true);
     const res = await fetch(`/api/items/${itemId}/lots`, {
@@ -137,23 +137,23 @@ export default function AddLotDrawer({
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="lot-thickness" className="text-xs">
-                        Thickness
+                      <Label htmlFor="lot-length" className="text-xs">
+                        Length
                       </Label>
                       <div className="relative">
                         <Input
-                          id="lot-thickness"
+                          id="lot-length"
                           type="number"
                           inputMode="decimal"
-                          step="1"
-                          min="1"
-                          placeholder="8"
-                          value={thicknessQuarters}
-                          onChange={(e) => setThicknessQuarters(e.target.value)}
-                          className="pr-6"
+                          step="0.25"
+                          min="0"
+                          placeholder="96"
+                          value={lengthInches}
+                          onChange={(e) => setLengthInches(e.target.value)}
+                          className="pr-4"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                          /4
+                          &quot;
                         </span>
                       </div>
                     </div>
@@ -181,23 +181,23 @@ export default function AddLotDrawer({
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="lot-length" className="text-xs">
-                        Length
+                      <Label htmlFor="lot-thickness" className="text-xs">
+                        Thickness
                       </Label>
                       <div className="relative">
                         <Input
-                          id="lot-length"
+                          id="lot-thickness"
                           type="number"
                           inputMode="decimal"
-                          step="0.5"
-                          min="0"
+                          step="1"
+                          min="1"
                           placeholder="8"
-                          value={lengthFeet}
-                          onChange={(e) => setLengthFeet(e.target.value)}
-                          className="pr-5"
+                          value={thicknessQuarters}
+                          onChange={(e) => setThicknessQuarters(e.target.value)}
+                          className="pr-6"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                          ft
+                          /4
                         </span>
                       </div>
                     </div>
