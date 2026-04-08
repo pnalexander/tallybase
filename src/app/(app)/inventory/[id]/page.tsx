@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +17,12 @@ interface Params {
 export default async function ItemDetailPage({ params }: Params) {
   const { id } = await params;
 
+  const session = await getAuthSession();
+  if (!session) notFound();
+
   const [item, categories, units, lots] = await Promise.all([
     prisma.item.findUnique({
-      where: { id },
+      where: { id, userId: session.user.id },
       include: {
         category: true,
         unitOfMeasure: true,

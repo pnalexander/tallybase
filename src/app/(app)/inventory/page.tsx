@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 
 export default async function InventoryPage() {
+  const session = await getAuthSession();
+  if (!session) redirect("/login");
+
   const items = await prisma.item.findMany({
+    where: { userId: session.user.id },
     orderBy: { name: "asc" },
     include: {
       category: true,

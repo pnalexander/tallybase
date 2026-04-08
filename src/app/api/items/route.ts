@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         name,
         categoryId,
         unitOfMeasureId,
+        userId: session.user.id,
         quantity: initialQuantity,
         sku: sku || undefined,
         notes: notes || undefined,

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const totalAdded = quantity * count;
 
   const item = await prisma.item.findUnique({ where: { id } });
-  if (!item) {
+  if (!item || item.userId !== session.user.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 

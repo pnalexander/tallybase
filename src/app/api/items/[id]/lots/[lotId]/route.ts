@@ -20,7 +20,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   const item = await prisma.item.findUnique({ where: { id } });
-  if (!item) {
+  if (!item || item.userId !== session.user.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 

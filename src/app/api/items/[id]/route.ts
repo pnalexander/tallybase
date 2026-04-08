@@ -26,6 +26,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
 
+  const item = await prisma.item.findUnique({ where: { id } });
+  if (!item || item.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   await prisma.$transaction([
     prisma.lot.deleteMany({ where: { itemId: id } }),
     prisma.transaction.deleteMany({ where: { itemId: id } }),
@@ -49,6 +54,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 
   const { attributes, sku, notes, lowStockThreshold, ...rest } = parsed.data;
+
+  const existing = await prisma.item.findUnique({ where: { id } });
+  if (!existing || existing.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const item = await prisma.item.update({
     where: { id },
